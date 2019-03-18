@@ -1,0 +1,6 @@
+/nbproject
+/cgi-bin
+/vendor
+/composer.lock
+*.sqlite
+/config.ini

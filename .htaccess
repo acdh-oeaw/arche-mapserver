@@ -1,0 +1,11 @@
+RewriteEngine on
+
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+RewriteRule ^(.*)$ index.php?path=$1 [QSA]
+
+<Files ~ .ini$>
+    Require all denied
+</Files>
+
