@@ -32,6 +32,7 @@ use SplFileInfo;
 use stdClass;
 use EasyRdf\Graph;
 use GuzzleHttp\Client;
+use GuzzleHttp\Psr7\Request;
 use zozlak\util\UUID;
 
 /**
@@ -178,17 +179,11 @@ class Map {
      */
     private function getRemoteFileInfo(): RemoteFileInfo {
         if ($this->remoteFileInfo === null) {
-            $client = new Client(['allow_redirects' => false, 'verify' => false]);
-
             // find the real resource URI
-            $url = $this->archeId;
-            do {
-                $response = $client->get($url);
-                $location = $response->getHeader('Location');
-                if (is_array($location) && count($location) > 0) {
-                    $url = $location[0];
-                }
-            } while ($response->getStatusCode() >= 300 && $response->getStatusCode() < 400);
+            $client = new Client(['allow_redirects' => ['track_redirects' => true], 'verify' => false]);
+            $response = $client->send(new Request('HEAD', $this->archeId));
+            $redirects = array_merge([$this->archeId], $response->getHeader('X-Guzzle-Redirect-History'));
+            $url = array_pop($redirects);
             $metaUrl = $url . '/fcr:metadata';
 
             // fetch metadata
