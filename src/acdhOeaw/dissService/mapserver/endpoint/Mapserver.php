@@ -57,7 +57,7 @@ class Mapserver extends HttpEndpoint {
 
         // fetch the map and prepare the request URL
         $map   = $cache->getMap($this->mapserverId);
-        $url   = preg_replace('|/$|', '', $map->getUrl());
+        $url   = preg_replace('|&$|', '', $map->getUrl());
         foreach ($_GET as $k => $v) {
             $url .= '&' . urlencode($k) . '=' . urlencode($v);
         }
@@ -95,6 +95,7 @@ class Mapserver extends HttpEndpoint {
      * Make sure the map id is a fully qualified ARCHE URI
      */
     private function checkId() {
+        $this->mapserverId = urldecode($this->mapserverId);
         if (!preg_match('|^https?://|', $this->mapserverId)) {
             $this->mapserverId = $this->getConfig('archeIdPrefix') . $this->mapserverId;
         }

@@ -138,12 +138,12 @@ class Map {
                 $this->localDate = $info->mTime;
                 $this->type      = $info->type;
                 $this->size      = filesize($dataFile);
-                $this->checkDate = date('Y-m-d H:i:s');
                 $refreshed       = true;
                 if (file_exists($mapFile)) {
                     unlink($mapFile);
                 }
             }
+            $this->checkDate = date('Y-m-d H:i:s');
         }
 
         if (!file_exists($mapFile)) {
@@ -195,7 +195,7 @@ class Map {
             $graph = new Graph();
             $graph->load($metaUrl);
             $meta  = $graph->resource($url);
-            $mtime = $meta->getLiteral('http://fedora.info/definitions/v4/repository#lastModified');
+            $mtime = $meta->getLiteral('http://fedora.info/definitions/v4/repository#lastModified')->format('Y-m-d H:i:s');
             $mime  = $meta->getLiteral('http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasMimeType');
             foreach (self::$mimeTypes as $k => $v) {
                 if (in_array($mime, $v)) {
@@ -232,7 +232,7 @@ class Map {
      * @return string
      */
     public function getUrl(): string {
-        return self::$baseUrl . '?map=' . $this->id . '.map&';
+        return self::$baseUrl . '?map=' . $this->getLocalPath() . '.map&';
     }
 
     /**
