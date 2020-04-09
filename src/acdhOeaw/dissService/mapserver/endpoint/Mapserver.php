@@ -95,7 +95,7 @@ class Mapserver extends HttpEndpoint {
      * Make sure the map id is a fully qualified ARCHE URI
      */
     private function checkId() {
-        $this->mapserverId = urldecode($this->mapserverId);
+        $this->mapserverId = urldecode(urldecode($this->mapserverId));
         if (!preg_match('|^https?://|', $this->mapserverId)) {
             $this->mapserverId = $this->getConfig('archeIdPrefix') . $this->mapserverId;
         }

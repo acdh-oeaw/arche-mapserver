@@ -45,7 +45,7 @@ class Map {
     static private $mimeTypes = [
         'raster' => ['image/tiff', 'image/jpeg', 'image/png', 'image/jp2'],
         'vector' => ['application/vnd.geo+json', 'application/json', 'application/vnd.google-earth.kml+xml',
-            'application/gml+xml'],
+            'application/gml+xml', 'application/geo+json'],
     ];
     static private $templates;
     static private $baseUrl;
