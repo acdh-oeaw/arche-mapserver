@@ -182,19 +182,21 @@ class Map {
     private function getRemoteFileInfo(): RemoteFileInfo {
         if ($this->remoteFileInfo === null) {
             // find the real resource URI
-            $client    = new Client(['allow_redirects' => ['track_redirects' => true],
-                'verify'          => false]);
+            $client    = new Client([
+                'allow_redirects' => ['track_redirects' => true],
+                'verify'          => false
+            ]);
             $response  = $client->send(new Request('HEAD', $this->archeId));
             $redirects = array_merge([$this->archeId], $response->getHeader('X-Guzzle-Redirect-History'));
-            $url       = array_pop($redirects);
-            $metaUrl   = $url . '/fcr:metadata';
+            $url       = preg_replace('|/$|', '', array_pop($redirects));
+            $metaUrl   = $url . '/metadata';
 
             // fetch metadata
             $graph = new Graph();
             $graph->load($metaUrl);
             $meta  = $graph->resource($url);
-            $mtime = $meta->getLiteral('http://fedora.info/definitions/v4/repository#lastModified')->format('Y-m-d H:i:s');
-            $mime  = $meta->getLiteral('http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasMimeType');
+            $mtime = $meta->getLiteral('https://vocabs.acdh.oeaw.ac.at/schema#hasBinaryUpdatedDate')->format('Y-m-d H:i:s');
+            $mime  = $meta->getLiteral('https://vocabs.acdh.oeaw.ac.at/schema#hasFormat');
             foreach (self::$mimeTypes as $k => $v) {
                 if (in_array($mime, $v)) {
                     $type = $k;
