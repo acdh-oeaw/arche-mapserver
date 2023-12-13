@@ -22,11 +22,12 @@ jobs:
           rm -fR vendor
           mkdir build/docroot && cp -R `ls -1 | grep -v ^build` build/docroot/ && cp .htaccess build/docroot/ && cp build/arche/* build/docroot/
           docker build --rm -t "acdhch/$RANCHER_NAMESPACE:latest" --build-arg VARIANT=production --label "buildUrl=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" build
-      #- name: test image
-      #  run: |
-      #    docker run -d --name "$RANCHER_NAMESPACE" -p 8080:80 "acdhch/$RANCHER_NAMESPACE:latest"
-      #    sleep 1
-      #    curl -f -i 'http://127.0.0.1:8080/?id=https%3A%2F%2Fid.acdh.oeaw.ac.at%2Fgtrans'
+      - name: test image
+        run: |
+          docker run -d --name "$RANCHER_NAMESPACE" -p 8080:80 "acdhch/$RANCHER_NAMESPACE:latest"
+          sleep 1
+          docker exec "$RANCHER_NAMESPACE" /var/www/html/download.sh
+          curl -f -i 'http://127.0.0.1:8080/mapserv?map=/data/czoernig.map&mode=tile&layers=czoernig&tilemode=gmap&tile=8+5+4'
       - name: authorize against docker hub
         uses: docker/login-action@v3
         with:
@@ -34,8 +35,8 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: push to docker hub
         run: docker push "acdhch/$RANCHER_NAMESPACE:latest"
-      #- name: redeploy on rancher
-      #   run: |
-      #    BASE_URL=`curl -s -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$RANCHER_API_BASE/projects" | jq -r ".data[] | select(.name == \"$RANCHER_PROJECT\") | .links.workloads"`
-      #    curl -i -X POST -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$BASE_URL/deployment:$RANCHER_NAMESPACE:$RANCHER_NAMESPACE?action=redeploy"
+      - name: redeploy on rancher
+         run: |
+          BASE_URL=`curl -s -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$RANCHER_API_BASE/projects" | jq -r ".data[] | select(.name == \"$RANCHER_PROJECT\") | .links.workloads"`
+          curl -i -X POST -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$BASE_URL/deployment:$RANCHER_NAMESPACE:$RANCHER_NAMESPACE?action=redeploy"
 
