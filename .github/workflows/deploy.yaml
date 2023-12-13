@@ -36,7 +36,7 @@ jobs:
       - name: push to docker hub
         run: docker push "acdhch/$RANCHER_NAMESPACE:latest"
       - name: redeploy on rancher
-         run: |
+        run: |
           BASE_URL=`curl -s -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$RANCHER_API_BASE/projects" | jq -r ".data[] | select(.name == \"$RANCHER_PROJECT\") | .links.workloads"`
           curl -i -X POST -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$BASE_URL/deployment:$RANCHER_NAMESPACE:$RANCHER_NAMESPACE?action=redeploy"
 
