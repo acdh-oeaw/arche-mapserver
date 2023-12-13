@@ -12,6 +12,7 @@ RUN chmod +x /usr/local/bin/install-php-extensions &&\
     mkdir /data &&\
     chown www-data:www-data /data
 COPY docroot /var/www/html
+COPY mapserver.conf /var/www/html/mapserver.conf
 RUN cd /var/www/html &&\
     composer update -o --no-dev &&\
     chown -R www-data:www-data /var/www/html

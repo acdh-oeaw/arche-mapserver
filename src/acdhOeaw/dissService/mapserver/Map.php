@@ -26,14 +26,16 @@
 
 namespace acdhOeaw\dissService\mapserver;
 
-use DateTime;
+use DateTimeImmutable;
 use RuntimeException;
 use SplFileInfo;
-use stdClass;
-use EasyRdf\Graph;
+use quickRdfIo\Util as RdfIoUtil;
+use quickRdf\Dataset;
+use quickRdf\DataFactory as DF;
+use termTemplates\QuadTemplate as QT;
+use Psr\Log\LoggerInterface;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
-use zozlak\util\UUID;
 
 /**
  * Represents a raster or vector map to be stored in a cache.
@@ -42,13 +44,23 @@ use zozlak\util\UUID;
  */
 class Map {
 
-    static private $mimeTypes = [
+    const TIME_FORMAT = 'Y-m-d H:i:s';
+
+    /**
+     * 
+     * @var array<string, array<string>>
+     */
+    static private array $mimeTypes = [
         'raster' => ['image/tiff', 'image/jpeg', 'image/png', 'image/jp2'],
         'vector' => ['application/vnd.geo+json', 'application/json', 'application/vnd.google-earth.kml+xml',
             'application/gml+xml', 'application/geo+json'],
     ];
-    static private $templates;
-    static private $baseUrl;
+    /**
+     * 
+     * @var array<string, string>
+     */
+    static private array $templates;
+    static private string $baseUrl;
 
     /**
      * Initializes the class by setting up the templates.
@@ -59,7 +71,7 @@ class Map {
      *   - the wms_onlineresource config parameter description)
      */
     static public function init(string $rasterTmplFile, string $vectorTmplFile,
-                                string $baseUrl) {
+                                string $baseUrl): void {
         self::$templates = [
             'raster' => $rasterTmplFile,
             'vector' => $vectorTmplFile,
@@ -67,24 +79,26 @@ class Map {
         self::$baseUrl   = $baseUrl;
     }
 
-    public $archeId;
-    public $id;
-    public $type;
-    public $localDate;
-    public $remoteDate;
-    public $reqDate;
-    public $checkDate = '1900-01-01 00:00:00';
-    public $size;
-    public $storageDir;
-    private $remoteFileInfo;
+    public string $url;
+    public string $type;
+    public int $size;
+    public string $reqDate;
+    public string $checkDate = '1900-01-01 00:00:00';
+    public string $localDate;
+    public string $remoteDate;
+    public string $storageDir;
+    private RemoteFileInfo $remoteFileInfo;
 
     /**
      * 
      * @param string $storageDir directory in which cached maps are stored
-     * @param stdClass|null $data initial map object property values
+     * @param string $url
+     * @param object|null $data initial map object property values
      */
-    public function __construct(string $storageDir, ?stdClass $data = null) {
+    public function __construct(string $storageDir, string $url,
+                                object | null $data = null) {
         $this->storageDir = $storageDir;
+        $this->url        = $url;
 
         foreach ((array) $data as $k => $v) {
             if (property_exists(self::class, $k)) {
@@ -92,13 +106,9 @@ class Map {
             }
         }
 
-        if ($this->id === null) {
-            $this->id = 'm' . UUID::v4();
-        }
-
         try {
             $info            = new SplFileInfo($this->getLocalPath());
-            $this->localDate = $info->getMTime();
+            $this->localDate = date(self::TIME_FORMAT, $info->getMTime());
         } catch (RuntimeException $ex) {
             
         }
@@ -106,12 +116,9 @@ class Map {
 
     /**
      * Initialized the map object from a given ARCHE resource
-     * @param string $archeId
      * @return void
      */
-    public function fetchFromFedora(string $archeId): void {
-        $this->archeId = $archeId;
-
+    public function fetch(): void {
         $info             = $this->getRemoteFileInfo();
         $this->type       = $info->type;
         $this->remoteDate = $info->mTime;
@@ -125,26 +132,26 @@ class Map {
      *   corresponding Fedora resources state
      * @return bool
      */
-    public function refresh(int $keepAlive): bool {
+    public function refresh(int $keepAlive, LoggerInterface $log): bool {
         $refreshed = false;
         $dataFile  = $this->getLocalPath();
         $mapFile   = $dataFile . '.map';
 
-        $d = (new DateTime('now'))->diff(DateTime::createFromFormat('Y-m-d H:i:s', $this->checkDate));
-        $d = $d->format('%a') * 24 * 3600 + $d->h * 3600 + $d->i * 60 + $d->s + $d->f;
+        $d = (new DateTimeImmutable('now'))->diff(DateTimeImmutable::createFromFormat(self::TIME_FORMAT, $this->checkDate));
+        $d = (int) $d->format('%a') * 24 * 3600 + $d->h * 3600 + $d->i * 60 + $d->s + $d->f;
         if ($d > $keepAlive || !file_exists($dataFile)) {
             $info = $this->getRemoteFileInfo();
-            if ($info->mTime > $this->localDate || !file_exists($dataFile)) {
+            if (!file_exists($dataFile) || $info->mTime > $this->localDate) {
+                $log->info("Fetching binary from $info->location to " . $this->getLocalPath());
                 $this->copy($info->location);
                 $this->localDate = $info->mTime;
                 $this->type      = $info->type;
-                $this->size      = filesize($dataFile);
                 $refreshed       = true;
                 if (file_exists($mapFile)) {
                     unlink($mapFile);
                 }
             }
-            $this->checkDate = date('Y-m-d H:i:s');
+            $this->checkDate = date(self::TIME_FORMAT);
         }
 
         if (!file_exists($mapFile)) {
@@ -156,7 +163,6 @@ class Map {
             $tmpl      = str_replace('%Y_MAX%', $d->ymax, $tmpl);
             $tmpl      = str_replace('%IDCOL%', $d->idCol, $tmpl);
             $tmpl      = str_replace('%SRID%', $d->srid, $tmpl);
-            $tmpl      = str_replace('%ID%', $this->id, $tmpl);
             $tmpl      = str_replace('%NAME%', $this->getName(), $tmpl);
             $tmpl      = str_replace('%FILE%', $dataFile, $tmpl);
             $tmpl      = str_replace('%URL%', $this->getUrl(), $tmpl);
@@ -172,38 +178,50 @@ class Map {
      * @return string
      */
     public function getLocalPath(): string {
-        return $this->storageDir . '/' . $this->id;
+        return $this->storageDir . '/' . md5($this->url);
     }
 
     /**
      * Fetches remote map file metadata (modification time, type, exact location)
-     * @return stdClass
+     * @return RemoteFileInfo
      */
     private function getRemoteFileInfo(): RemoteFileInfo {
-        if ($this->remoteFileInfo === null) {
+        if (!isset($this->remoteFileInfo)) {
             // find the real resource URI
-            $client    = new Client(['allow_redirects' => ['track_redirects' => true],
-                'verify'          => false]);
-            $response  = $client->send(new Request('HEAD', $this->archeId));
-            $redirects = array_merge([$this->archeId], $response->getHeader('X-Guzzle-Redirect-History'));
+            $client    = new Client([
+                'allow_redirects' => ['track_redirects' => true],
+                'verify'          => false,
+                'http_errors'     => false,
+            ]);
+            $response  = $client->send(new Request('HEAD', $this->url));
+            $redirects = array_merge([$this->url], $response->getHeader('X-Guzzle-Redirect-History'));
             $url       = array_pop($redirects);
-            $metaUrl   = $url . '/fcr:metadata';
+            $url       = preg_replace('|/metadata$|', '', $url);
+            $metaUrl   = $url . '/metadata';
+            $response  = $client->send(new Request('GET', $metaUrl));
+            if ($response->getStatusCode() !== 200) {
+                throw new \RuntimeException("Failed to fetch $this->url metadata");
+            }
 
             // fetch metadata
-            $graph = new Graph();
-            $graph->load($metaUrl);
-            $meta  = $graph->resource($url);
-            $mtime = $meta->getLiteral('http://fedora.info/definitions/v4/repository#lastModified')->format('Y-m-d H:i:s');
-            $mime  = $meta->getLiteral('http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasMimeType');
+            $sbj   = DF::namedNode($url);
+            $meta  = new Dataset();
+            $meta->add(RdfIoUtil::parse($response, new DF()));
+            $mtime = (string) $meta->listObjects(new QT($url, DF::namedNode('https://vocabs.acdh.oeaw.ac.at/schema#hasUpdatedDate')))->current();
+            $mime  = (string) $meta->listObjects(new QT($url, DF::namedNode('https://vocabs.acdh.oeaw.ac.at/schema#hasFormat')))->current();
+            $type  = null;
             foreach (self::$mimeTypes as $k => $v) {
                 if (in_array($mime, $v)) {
                     $type = $k;
                     break;
                 }
             }
+            if ($type === null) {
+                throw new \RuntimeException("Unsupported file format $mime");
+            }
 
             $this->remoteFileInfo = new RemoteFileInfo([
-                'mTime'    => $mtime,
+                'mTime'    => (new DateTimeImmutable($mtime))->format(self::TIME_FORMAT),
                 'type'     => $type,
                 'location' => $url
             ]);
@@ -215,7 +233,7 @@ class Map {
      * Copies remote map file to the local cache
      * @param string $from file to copy from (can be an URL)
      */
-    private function copy(string $from) {
+    private function copy(string $from): void {
         $in  = fopen($from, 'r');
         $out = fopen($this->getLocalPath(), 'w');
         while (!feof($in)) {
@@ -223,6 +241,7 @@ class Map {
         }
         fclose($in);
         fclose($out);
+        $this->size = filesize($this->getLocalPath());
     }
 
     /**
@@ -236,9 +255,9 @@ class Map {
     /**
      * Returns various geodata of an already cached map.
      * 
-     * @return \stdClass
+     * @return object
      */
-    public function getGeodata(): stdClass {
+    public function getGeodata(): object {
         $d = (object) [
                 'xmin'  => -180,
                 'xmax'  => 180,
@@ -259,10 +278,11 @@ class Map {
         return $d;
     }
 
-    private function getVectorGeodata(stdClass $d): stdClass {
+    private function getVectorGeodata(object $d): object {
         $output = [];
         $cmd    = 'ogrinfo -nomd -so ' . escapeshellarg($this->getLocalPath());
         exec($cmd, $output);
+        $layer = '';
         foreach ($output as $l) {
             if (substr($l, 0, 2) === '1:') {
                 $layer = preg_replace('/^1: ([^ ]+)( .*$)?/', '\\1', $l);
@@ -298,7 +318,7 @@ class Map {
         return $d;
     }
 
-    private function getRasterGeodata(stdClass $d): stdClass {
+    private function getRasterGeodata(object $d): object {
         $output = [];
         $cmd    = 'gdalinfo ' . escapeshellarg($this->getLocalPath());
         exec($cmd, $output);
@@ -331,7 +351,7 @@ class Map {
      * @return string
      */
     public function getName(): string {
-        $name = $this->archeId;
+        $name = $this->url;
         $name = preg_replace('|^.*/|', '', $name);
         $name = str_replace(' ', '_', $name);
         if (!preg_match('/^[a-zA-Z]/', $name)) {
@@ -345,7 +365,6 @@ class Map {
      * @return void
      */
     public function touch(): void {
-        $this->reqDate = date('Y-m-d H:i:s');
+        $this->reqDate = date(self::TIME_FORMAT);
     }
-
 }

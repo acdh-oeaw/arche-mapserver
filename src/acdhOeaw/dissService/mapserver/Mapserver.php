@@ -31,6 +31,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\RequestException;
+use Psr\Log\LoggerInterface;
 use acdhOeaw\dissService\mapserver\Cache;
 use acdhOeaw\dissService\mapserver\Map;
 
@@ -41,65 +42,37 @@ use acdhOeaw\dissService\mapserver\Map;
  */
 class Mapserver {
 
-    static $skipResponseHeaders = ['connection', 'keep-alive', 'proxy-authenticate',
-        'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'host'];
-    protected $mapserverId;
+    /**
+     * 
+     * @var array<string>
+     */
+    static array $skipResponseHeaders = [
+        'connection', 'keep-alive', 'proxy-authenticate', 'proxy-authorization',
+        'te', 'trailer', 'transfer-encoding', 'upgrade', 'host'
+    ];
     private object $config;
+    private LoggerInterface $log;
+    private Cache $cache;
 
-    public function __construct(object $config) {
+    public function __construct(object $config, LoggerInterface $log) {
         $this->config = $config;
+        $this->log    = $log;
+        $this->cache  = new Cache($this->config->cache->db, $this->config->cache->dir, $this->config->cache->keepAlive, $this->log);
     }
 
-    public function serve() {
-        $this->checkId();
-
-        // initialize map templates and cache
-        Map::init($this->getConfig('mapTmplRaster'), $this->getConfig('mapTmplVector'), $this->getConfig('mapServerBase'));
-        $cache = new Cache($this->getConfig('db'), $this->getConfig('cacheDir'), $this->getConfig('cacheKeepAlive'));
-
+    public function serve(string $url): void {
         // fetch the map and prepare the request URL
-        $map = $cache->getMap($this->mapserverId);
+        $map = $this->cache->getMap($url);
         $url = preg_replace('|&$|', '', $map->getUrl());
         foreach ($_GET as $k => $v) {
+            if ($k === 'id') {
+                continue;
+            }
             $url .= '&' . urlencode($k) . '=' . urlencode($v);
         }
 
-        // proxy the request
-        $output  = fopen('php://output', 'w');
-        $options = [
-            'sink'       => $output,
-            'on_headers' => function (Response $r) {
-                header('HTTP/1.1 ' . $r->getStatusCode() . ' ' . $r->getReasonPhrase());
-                foreach ($r->getHeaders() as $name => $values) {
-                    if (in_array(strtolower($name), self::$skipResponseHeaders)) {
-                        continue;
-                    }
-                    foreach ($values as $value) {
-                        header(sprintf('%s: %s', $name, $value), false);
-                    }
-                }
-            },
-            'verify' => false,
-        ];
-        $client  = new Client($options);
-        $request = new Request('GET', $url);
-        try {
-            $client->send($request);
-        } catch (RequestException $e) {
-            
-        }
-        if (is_resource($output)) {
-            fclose($output);
-        }
-    }
-
-    /**
-     * Make sure the map id is a fully qualified ARCHE URI
-     */
-    private function checkId() {
-        $this->mapserverId = urldecode(urldecode($this->mapserverId));
-        if (!preg_match('|^https?://|', $this->mapserverId)) {
-            $this->mapserverId = $this->getConfig('archeIdPrefix') . $this->mapserverId;
-        }
+        $this->log->info("Redirecting to $url");
+        http_response_code(302);
+        header('Location: ' . $url);
     }
 }

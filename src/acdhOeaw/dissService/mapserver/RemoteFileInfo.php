@@ -32,10 +32,14 @@ namespace acdhOeaw\dissService\mapserver;
  * @author zozlak
  */
 class RemoteFileInfo {
-    public $mTime;
-    public $type;
-    public $location;
+    public string $mTime;
+    public string $type;
+    public string $location;
     
+    /**
+     * 
+     * @param array<string, string> $values
+     */
     public function __construct(array $values) {
         foreach ($values as $k => $v) {
             if (property_exists(self::class, $k)) {

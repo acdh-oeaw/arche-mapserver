@@ -29,9 +29,16 @@ header('Access-Control-Allow-Headers: X-Requested-With, Content-Type');
 
 require_once 'vendor/autoload.php';
 
-$config                = json_decode(json_encode(yaml_parse_file('config.yaml')));
-// black magic to handle fully-qualified ARCHE URIs
-$url                   = substr($_SERVER['REDIRECT_URL'], strlen($config->baseUrl));
-$url                   = explode('/', preg_replace('|^/|', '', $url));
+use zozlak\logging\Log;
+use acdhOeaw\dissService\mapserver\Mapserver;
+use acdhOeaw\dissService\mapserver\Map;
 
-$server = new acdhOeaw\dissService\mapserver\Mapserver($config);
+$cfg = json_decode(json_encode(yaml_parse_file('config.yaml')));
+$log = new Log($cfg->log->file, $cfg->log->level);
+
+$id = filter_input(\INPUT_GET, 'id');
+$id = preg_replace('|/metadata$|', '', $id);
+
+Map::init($cfg->mapserver->templates->raster, $cfg->mapserver->templates->vector, $cfg->mapserver->baseUrl);
+$server = new Mapserver($cfg, $log);
+$server->serve($id);

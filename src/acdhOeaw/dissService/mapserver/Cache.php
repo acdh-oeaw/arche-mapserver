@@ -27,6 +27,7 @@
 namespace acdhOeaw\dissService\mapserver;
 
 use PDO;
+use Psr\Log\LoggerInterface;
 
 /**
  * Map cache.
@@ -35,9 +36,10 @@ use PDO;
  */
 class Cache {
 
-    private $dir;
-    private $keepAlive;
-    private $pdo;
+    private string $dir;
+    private int $keepAlive;
+    private PDO $pdo;
+    private LoggerInterface $log;
 
     /**
      * 
@@ -46,21 +48,21 @@ class Cache {
      * @param int $keepAlive
      */
     public function __construct(string $dbConfig, string $cacheDir,
-                                int $keepAlive) {
+                                int $keepAlive, LoggerInterface $log) {
         $this->dir       = $cacheDir;
         $this->keepAlive = $keepAlive;
+        $this->log       = $log;
 
         $this->pdo = new PDO($dbConfig);
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         $this->pdo->query("
             create table if not exists maps(
-                arche_id text primary key, 
-                id text, 
+                url text,
                 type text, 
+                size int,
                 req_date timestamp, 
-                check_date timesatmp,
-                size int
+                check_date timesatmp
              )
         ");
     }
@@ -71,28 +73,31 @@ class Cache {
      * If the map is not yet locally cached, caches it first.
      * 
      * If the locally cached map is outdated, fetches an up to date version.
-     * @param string $archeId
+     * @param string $url
      * @return \acdhOeaw\dissService\mapserver\Map
      */
-    public function getMap(string $archeId): Map {
+    public function getMap(string $url): Map {
+        $this->log->info("Handling $url");
         $query = $this->pdo->prepare('
             SELECT 
-                id, type, size,
-                arche_id AS "archeId", 
+                type, size,
                 req_date AS "reqDate",
                 check_date AS "checkDate"
             FROM maps 
-            WHERE arche_id = ?
+            WHERE url = ?
         ');
-        $query->execute([$archeId]);
+        $query->execute([$url]);
         $data  = $query->fetchObject();
         if ($data !== false) {
-            $map = new Map($this->dir, $data);
+            $this->log->info("Requested map found in cache");
+            $map = new Map($this->dir, $url, $data);
         } else {
-            $map = new Map($this->dir);
-            $map->fetchFromFedora($archeId);
+            $this->log->info("Requested map not in cache - fetching");
+            $map = new Map($this->dir, $url);
+            $map->fetch();
+            $this->log->info("Metadata fetched: $map->type, $map->remoteDate");
         }
-        $map->refresh($this->keepAlive);
+        $map->refresh($this->keepAlive, $this->log);
         $map->touch();
         $this->putMap($map);
 
@@ -103,15 +108,13 @@ class Cache {
      * Saves locally cached map metadata into the database.
      * @param \acdhOeaw\dissService\mapserver\Map $map
      */
-    public function putMap(Map $map) {
+    public function putMap(Map $map): void {
         $query = $this->pdo->prepare("
-            INSERT OR REPLACE INTO maps (arche_id, id, type, req_date, check_date, size)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO maps (url, type, size, req_date, check_date)
+            VALUES (?, ?, ?, ?, ?)
         ");
         $query->execute([
-            $map->archeId, $map->id, $map->type, $map->reqDate, $map->checkDate,
-            $map->size
+            $map->url, $map->type, $map->size, date('Y-m-d H:i:s'), $map->checkDate
         ]);
     }
-
 }
