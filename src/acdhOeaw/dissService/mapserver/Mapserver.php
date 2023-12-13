@@ -25,15 +25,12 @@
  * 
  */
 
-namespace acdhOeaw\dissService\mapserver\endpoint;
+namespace acdhOeaw\dissService\mapserver;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Response;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\Exception\RequestException;
-use zozlak\rest\HttpEndpoint;
-use zozlak\rest\HeadersFormatter;
-use zozlak\rest\DataFormatter;
 use acdhOeaw\dissService\mapserver\Cache;
 use acdhOeaw\dissService\mapserver\Map;
 
@@ -42,13 +39,18 @@ use acdhOeaw\dissService\mapserver\Map;
  *
  * @author zozlak
  */
-class Mapserver extends HttpEndpoint {
+class Mapserver {
 
     static $skipResponseHeaders = ['connection', 'keep-alive', 'proxy-authenticate',
         'proxy-authorization', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'host'];
     protected $mapserverId;
+    private object $config;
 
-    public function get(DataFormatter $f, HeadersFormatter $h) {
+    public function __construct(object $config) {
+        $this->config = $config;
+    }
+
+    public function serve() {
         $this->checkId();
 
         // initialize map templates and cache
@@ -56,8 +58,8 @@ class Mapserver extends HttpEndpoint {
         $cache = new Cache($this->getConfig('db'), $this->getConfig('cacheDir'), $this->getConfig('cacheKeepAlive'));
 
         // fetch the map and prepare the request URL
-        $map   = $cache->getMap($this->mapserverId);
-        $url   = preg_replace('|&$|', '', $map->getUrl());
+        $map = $cache->getMap($this->mapserverId);
+        $url = preg_replace('|&$|', '', $map->getUrl());
         foreach ($_GET as $k => $v) {
             $url .= '&' . urlencode($k) . '=' . urlencode($v);
         }
@@ -66,7 +68,7 @@ class Mapserver extends HttpEndpoint {
         $output  = fopen('php://output', 'w');
         $options = [
             'sink'       => $output,
-            'on_headers' => function(Response $r) {
+            'on_headers' => function (Response $r) {
                 header('HTTP/1.1 ' . $r->getStatusCode() . ' ' . $r->getReasonPhrase());
                 foreach ($r->getHeaders() as $name => $values) {
                     if (in_array(strtolower($name), self::$skipResponseHeaders)) {
@@ -79,7 +81,7 @@ class Mapserver extends HttpEndpoint {
             },
             'verify' => false,
         ];
-        $client = new Client($options);
+        $client  = new Client($options);
         $request = new Request('GET', $url);
         try {
             $client->send($request);
@@ -100,5 +102,4 @@ class Mapserver extends HttpEndpoint {
             $this->mapserverId = $this->getConfig('archeIdPrefix') . $this->mapserverId;
         }
     }
-
 }

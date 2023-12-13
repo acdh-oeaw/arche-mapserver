@@ -1,0 +1,30 @@
+MAP
+  NAME "%NAME%"
+  EXTENT -180 -90 180 90
+  LAYER
+    NAME "%NAME%"
+    CONNECTIONTYPE OGR
+    CONNECTION "%FILE%"
+    PROJECTION AUTO END
+    TYPE POLYGON
+    METADATA
+      "wfs_title" "%NAME%"
+      "wfs_srs" "EPSG:%SRID%"
+      "gml_featureid" "%IDCOL%"
+      "gml_include_items" "all"
+    END
+    STATUS on
+  END
+
+  PROJECTION AUTO END
+
+  WEB
+    METADATA
+      "wfs_title" "%NAME%"
+      "wfs_onlineresource" "%URL%"
+      "wfs_enable_request" "*"
+      "wfs_srs" "EPSG:4326 EPSG:3857 EPSG:3035"
+    END
+  END
+END
+

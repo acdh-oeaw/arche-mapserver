@@ -1,7 +1,33 @@
 {
+    "name": "acdh-oeaw/arche-mapserver",
+    "description": "Thumbnails service for the ARCHE Suite",
+    "keywords": [],
+    "homepage": "https://github.com/acdh-oeaw/arche-thumbnails",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Mateusz Żółtak",
+            "email": "mzoltak@oeaw.ac.at"
+        }
+    ],
     "require": {
-        "zozlak/rest": "^4.4",
-        "guzzlehttp/guzzle": "~6.0",
-        "acdh-oeaw/easyrdf": "^0.13.2"
-    }
+        "php": ">=8.0",
+        "ext-mbstring": "*",
+        "ext-pdo": "*",
+        "ext-pdo_sqlite": "*",
+        "ext-yaml": "*",
+        "guzzlehttp/guzzle": "^7",
+        "acdh-oeaw/arche-lib": "dev-rdfInterface",
+        "zozlak/logging": "^1",
+        "sweetrdf/term-templates": "^2"
+    },
+    "autoload": {
+        "psr-4": {
+            "acdhOeaw\\": "src/acdhOeaw"
+        }
+    },
+    "require-dev": {
+        "phpstan/phpstan": "*"
+    },
+    "minimum-stability": "dev"
 }

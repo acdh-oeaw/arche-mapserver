@@ -1,6 +1,7 @@
 /nbproject
-/cgi-bin
+/cache
 /vendor
 /composer.lock
 *.sqlite
-/config.ini
+/config.yaml
+/build/docroot

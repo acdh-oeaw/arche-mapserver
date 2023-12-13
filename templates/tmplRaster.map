@@ -1,0 +1,28 @@
+MAP
+  NAME		"%NAME%"
+  EXTENT	%X_MIN% %Y_MIN% %X_MAX% %Y_MAX%	
+  LAYER
+    NAME "%NAME%"
+    DATA "%FILE%"
+    PROJECTION AUTO END
+    TYPE RASTER
+    METADATA
+      "wms_title" "%NAME%"
+    END
+    STATUS on
+  END
+
+  PROJECTION AUTO END
+     
+  WEB
+    METADATA
+      "wms_title" "%NAME%"
+      "wms_onlineresource" "%URL%"
+      "wms_enable_request" "*"
+      "wms_srs" "EPSG:4326 EPSG:3857 EPSG:3035"
+      "wms_format" "image/png"
+      "wms_rootlayer_name" ""
+    END
+  END
+END
+

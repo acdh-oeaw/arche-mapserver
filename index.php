@@ -24,31 +24,14 @@
  * THE SOFTWARE.
  * 
  */
-
-use zozlak\rest\HttpController;
-use zozlak\util\Config;
-
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Headers: X-Requested-With, Content-Type');
 
-$composer = require_once 'vendor/autoload.php';
-$composer->addPsr4('acdhOeaw\\', __DIR__ . '/src/acdhOeaw');
+require_once 'vendor/autoload.php';
 
-$config = new Config('config.ini');
-set_error_handler('\zozlak\rest\HttpController::errorHandler');
-try {
-    // black magic to handle fully-qualified ARCHE URIs
-    $url = substr($_SERVER['REDIRECT_URL'], strlen($config->get('baseUrl')));
-    $url = explode('/', preg_replace('|^/|', '', $url));
-    $_SERVER['CUSTOM_URL'] = array_shift($url);
-    $_SERVER['CUSTOM_URL'] .= '/' . urlencode(implode('/', $url));
+$config                = json_decode(json_encode(yaml_parse_file('config.yaml')));
+// black magic to handle fully-qualified ARCHE URIs
+$url                   = substr($_SERVER['REDIRECT_URL'], strlen($config->baseUrl));
+$url                   = explode('/', preg_replace('|^/|', '', $url));
 
-    $controller = new HttpController('acdhOeaw\\dissService\\mapserver\\endpoint', '', 'CUSTOM_URL');
-    $controller->
-        setConfig($config)->
-        handleRequest();
-} catch (Throwable $ex) {
-    HttpController::reportError($ex, $config->get('debug'));
-}
-
-
+$server = new acdhOeaw\dissService\mapserver\Mapserver($config);

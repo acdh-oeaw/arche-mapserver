@@ -1,0 +1,8 @@
+db: sqlite:db.sqlite
+baseUrl: /mapserver/
+archeIdPrefix: https://id.acdh.oeaw.ac.at/
+cacheDir: /var/www/html/cache
+cacheKeepAlive: 600
+mapTmplRaster: /var/www/html/templates/tmplRaster.map
+mapTmplVector: /var/www/html/templates/tmplVector.map
+mapServerBase: http://mapserver/cgi-bin/mapserv
