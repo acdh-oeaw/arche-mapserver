@@ -26,11 +26,11 @@ jobs:
         run: |
           docker run -d --name "$RANCHER_NAMESPACE" -p 8080:80 "acdhch/$RANCHER_NAMESPACE:latest"
           sleep 1
-          docker exec "$RANCHER_NAMESPACE" sed -i -e 's/baseUrl: .*/baseUrl: http://127.0.0.1:8080/cgi-bin/mapserv/' /var/www/html/config.yaml
+          docker exec "$RANCHER_NAMESPACE" sed -i -e 's/baseUrl: .*/baseUrl: http:\/\/127.0.0.1:8080\/cgi-bin\/mapserv/' /var/www/html/config.yaml
           docker exec "$RANCHER_NAMESPACE" /var/www/html/download.sh
-          curl -f -i 'http://127.0.0.1:8080/mapserv?map=/data/czoernig.map&mode=tile&layers=czoernig&tilemode=gmap&tile=8+5+4'
-          curl -f -i 'http://127.0.0.1:8080/?id=https%3A%2F%2Farche.acdh.oeaw.ac.at%2Fapi%2F108089&SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities'
-          curl -f -i 'http://127.0.0.1:8080/?id=https%3A%2F%2Farche.acdh.oeaw.ac.at%2Fapi%2F108089&SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities'
+          curl -f -L -i 'http://127.0.0.1:8080/mapserv?map=/data/czoernig.map&mode=tile&layers=czoernig&tilemode=gmap&tile=8+5+4'
+          curl -f -L -i 'http://127.0.0.1:8080/?id=https%3A%2F%2Farche.acdh.oeaw.ac.at%2Fapi%2F108089&SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities'
+          curl -f -L -i 'http://127.0.0.1:8080/?id=https%3A%2F%2Farche.acdh.oeaw.ac.at%2Fapi%2F108089&SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities'
           docker exec "$RANCHER_NAMESPACE" cat /var/www/html/log
       - name: authorize against docker hub
         uses: docker/login-action@v3
