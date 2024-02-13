@@ -207,8 +207,8 @@ class Map {
             $sbj   = DF::namedNode($url);
             $meta  = new Dataset();
             $meta->add(RdfIoUtil::parse($response, new DF()));
-            $mtime = (string) $meta->listObjects(new QT($url, DF::namedNode('https://vocabs.acdh.oeaw.ac.at/schema#hasUpdatedDate')))->current();
-            $mime  = (string) $meta->listObjects(new QT($url, DF::namedNode('https://vocabs.acdh.oeaw.ac.at/schema#hasFormat')))->current();
+            $mtime = (string) $meta->getObject(new QT($url, DF::namedNode('https://vocabs.acdh.oeaw.ac.at/schema#hasUpdatedDate')));
+            $mime  = (string) $meta->getObject(new QT($url, DF::namedNode('https://vocabs.acdh.oeaw.ac.at/schema#hasFormat')));
             $type  = null;
             foreach (self::$mimeTypes as $k => $v) {
                 if (in_array($mime, $v)) {

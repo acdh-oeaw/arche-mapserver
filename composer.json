@@ -17,9 +17,8 @@
         "ext-pdo_sqlite": "*",
         "ext-yaml": "*",
         "guzzlehttp/guzzle": "^7",
-        "acdh-oeaw/arche-lib": "dev-rdfInterface",
-        "zozlak/logging": "^1",
-        "sweetrdf/term-templates": "^2"
+        "acdh-oeaw/arche-lib": "^6",
+        "zozlak/logging": "^1"
     },
     "autoload": {
         "psr-4": {
@@ -28,6 +27,5 @@
     },
     "require-dev": {
         "phpstan/phpstan": "*"
-    },
-    "minimum-stability": "dev"
+    }
 }
