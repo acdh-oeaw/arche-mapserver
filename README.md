@@ -27,3 +27,6 @@ This script is run just after the container startup.
 The data is downloaded after the container startup and not during the container build to avoid storing (potentially large amounts of) data inside the image.
 
 Alternatively a share storing the static data can be mounted in the container under the `/data` directory or its subdirectory.
+
+Please remember you have to provide the [map config files](https://mapserver.org/mapfile/index.html) for your data.
+If you find the documentation linked above overwhelming, you can start with [minimalistic-yet-useful templates used by the ARCHE dissemination service](https://github.com/acdh-oeaw/arche-mapserver/tree/master/templates).
