@@ -22,7 +22,11 @@ On each GitHub release a Docker image is rebuild and redeployed on the ACDH-CH c
 
 ## Including static data
 
-Static data can be added by extending [this file](https://github.com/acdh-oeaw/arche-mapserver/blob/master/build/arche/download.sh) and redeploying the service.
+**First of all, please consider if you need to publish your data using the mapserver service.**
+If you have a raster file(s), then until you are forced to provide access to it over the WMS protocol (e.g. because you are bounded by the [INSPIRE EU directive](https://knowledge-base.inspire.ec.europa.eu/index_en)),
+you should be just fine with serving it as [XYZ tiles](https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames) (the protocol used by all web map services like Google Maps, Bing Maps or Open Street Maps and supported by all web map frameworks like Leaflet, Open Layers or Goole Map API). Generation of XYZ tiles pyramid is a matter of a single call to the [gdal2tiles.py](https://gdal.org/programs/gdal2tiles.html) script and the resulting file structure can be published as static files. An example of doing the tiling inside a GitHub Workflow and publishing the tiles as a GitHub Page is provided by [this repository](https://github.com/emt-project/mapserver/tree/main). If you have questions or need help, please contact Mateusz Żółtak or Peter Andorfer.
+
+**If you still think you want to use the mapserver service,** then static data can be added by extending [this file](https://github.com/acdh-oeaw/arche-mapserver/blob/master/build/arche/download.sh) and redeploying the service.
 This script is run just after the container startup.
 The data is downloaded after the container startup and not during the container build to avoid storing (potentially large amounts of) data inside the image.
 
