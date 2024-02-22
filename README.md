@@ -30,7 +30,7 @@ you should be just fine with serving it as [XYZ tiles](https://wiki.openstreetma
 This script is run just after the container startup.
 The data is downloaded after the container startup and not during the container build to avoid storing (potentially large amounts of) data inside the image.
 
-Alternatively a share storing the static data can be mounted in the container under the `/data` directory or its subdirectory (see tge [Redmine issue #22520](https://redmine.acdh.oeaw.ac.at/issues/22520)).
+Alternatively a share storing the static data can be mounted in the container under the `/data` directory or its subdirectory (see the [redmine issue #22520](https://redmine.acdh.oeaw.ac.at/issues/22520)).
 
 Please remember you have to provide the [map config files](https://mapserver.org/mapfile/index.html) for your data.
 If you find the documentation linked above overwhelming, you can start with [minimalistic-yet-useful templates used by the ARCHE dissemination service](https://github.com/acdh-oeaw/arche-mapserver/tree/master/templates).
