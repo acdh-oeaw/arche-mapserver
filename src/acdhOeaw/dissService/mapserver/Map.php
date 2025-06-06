@@ -29,12 +29,12 @@ namespace acdhOeaw\dissService\mapserver;
 use DateTimeImmutable;
 use RuntimeException;
 use SplFileInfo;
+use zozlak\ProxyClient;
 use quickRdfIo\Util as RdfIoUtil;
 use quickRdf\Dataset;
 use quickRdf\DataFactory as DF;
 use termTemplates\QuadTemplate as QT;
 use Psr\Log\LoggerInterface;
-use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Request;
 
 /**
@@ -188,7 +188,7 @@ class Map {
     private function getRemoteFileInfo(): RemoteFileInfo {
         if (!isset($this->remoteFileInfo)) {
             // find the real resource URI
-            $client    = new Client([
+            $client    = ProxyClient::factory([
                 'allow_redirects' => ['track_redirects' => true],
                 'verify'          => false,
                 'http_errors'     => false,
