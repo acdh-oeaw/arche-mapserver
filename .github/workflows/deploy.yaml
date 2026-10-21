@@ -4,7 +4,6 @@ on:
   release:
     types: [published]
 env:
-  RANCHER_API_BASE: https://rancher.acdh-dev.oeaw.ac.at/v3
   RANCHER_PROJECT: Dissemination services
   RANCHER_NAMESPACE: arche-mapserver
 jobs:
@@ -39,8 +38,4 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: push to docker hub
         run: docker push "acdhch/$RANCHER_NAMESPACE:latest"
-      - name: redeploy on rancher
-        run: |
-          BASE_URL=`curl -s -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$RANCHER_API_BASE/projects" | jq -r ".data[] | select(.name == \"$RANCHER_PROJECT\") | .links.workloads"`
-          curl -i -X POST -H "Authorization: Bearer ${{ secrets.RANCHERTOKEN }}" "$BASE_URL/deployment:$RANCHER_NAMESPACE:$RANCHER_NAMESPACE?action=redeploy"
 
