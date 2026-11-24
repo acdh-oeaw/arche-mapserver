@@ -10,7 +10,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       #- name: test
       #  run: |
       #    composer update
@@ -32,7 +32,7 @@ jobs:
           curl -f -L -i 'http://127.0.0.1:8080/?id=https%3A%2F%2Farche.acdh.oeaw.ac.at%2Fapi%2F108089&SERVICE=WFS&VERSION=2.0.0&REQUEST=GetCapabilities'
           docker exec "$RANCHER_NAMESPACE" cat /var/www/html/log
       - name: authorize against docker hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4.8.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
